@@ -100,7 +100,8 @@ test('model discovery intersects account package availability and retains reques
   assert.equal(list.allowed.capabilities.temperature, true)
   assert.equal(list.allowed.capabilities.reasoning, false)
   assert.deepEqual(list.allowed.modalities.input, ['text', 'image'])
-  assert.equal(list.allowed.rate, '1:1000Token')
+  // Official `rate` is token pricing ("1:1000Token"), not a credit multiplier.
+  assert.equal(list.allowed.rate, undefined)
 })
 
 test('malformed model discovery throws, so host retains previous model list', async () => {

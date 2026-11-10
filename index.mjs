@@ -1,6 +1,6 @@
 import {
   BASE, MANAGER, ORIGIN, PROVIDER, baseline, credentials, device, encrypt,
-  creditWindow, finishLogin, headers, json, models, refresh, searchWeb, tokenPlanWindows, usageWindows,
+  creditWindow, dailyCheckin, finishLogin, headers, json, models, refresh, searchWeb, tokenPlanWindows, usageWindows,
 } from './lib/mobileclaw.mjs'
 
 const phonePrompt = { type: 'text', key: 'phone', message: '手机号（+86）', validate: v => /^1[3-9]\d{9}$/.test(v) ? undefined : '请输入有效的中国大陆手机号' }
@@ -119,6 +119,13 @@ export default async function MobileClawPlugin({ client }) {
       async loader(getAuth) {
         const signedIn = await getAuth()
         if (!signedIn) return {}
+        const tag = res => {
+          if (!renewed) return res
+          const h = new Headers(res.headers)
+          h.set('X-Magpie-Sign-In', 'renewed')
+          return new Response(res.body, { status: res.status, statusText: res.statusText, headers: h })
+        }
+        let renewed = false
         let headersByModel
         const headersFor = async auth => {
           headersByModel ??= modelHeaderMap(auth).catch(() => new Map())
@@ -151,11 +158,18 @@ export default async function MobileClawPlugin({ client }) {
               if (auth.refresh && (!request || init.body !== undefined)) {
                 await res.body?.cancel()
                 res = await send(await renew(auth, init.signal))
+                renewed = res.ok
               }
             }
-            return res
+            return tag(res)
           },
         }
+      },
+      async checkin(getAuth, provider) {
+        // Only the personal workspace has these welfare activities.
+        if (provider?.id && provider.id !== PROVIDER) return { outcome: 'failed' }
+        const auth = await current(getAuth)
+        return dailyCheckin(auth.access || auth.key, AbortSignal.timeout(20000))
       },
       async usage(getAuth) {
         const auth = await current(getAuth)

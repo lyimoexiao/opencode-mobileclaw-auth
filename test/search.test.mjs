@@ -42,3 +42,44 @@ test('plugin registers an account-scoped search API tied to mobileclaw auth', as
   const pages = await p.search.mobileclaw.execute({ query: 'q', count: 1 }, { getAuth: async () => auth })
   assert.deepEqual(pages, [{ title: 'T', url: 'https://e.test', text: '', age: '' }])
 })
+
+test('daily check-in: already claimed reports done without claiming again', async () => {
+  const { dailyCheckin, MANAGER } = await import('../lib/mobileclaw.mjs')
+  const calls = []
+  globalThis.fetch = async (url, init) => {
+    calls.push(String(url))
+    assert.equal(String(url), `${MANAGER}/token-welfare/status`)
+    assert.deepEqual(JSON.parse(init.body), { activityCodes: ['1003'] })
+    return Response.json({ success: true, data: [{ activityCode: '1003', claimStatus: 'CLAIMED' }] })
+  }
+  assert.deepEqual(await dailyCheckin('t'), { outcome: 'done' })
+  assert.equal(calls.length, 1)
+})
+
+test('daily check-in: claims once and reports credit and streak', async () => {
+  const { dailyCheckin } = await import('../lib/mobileclaw.mjs')
+  let claimed = false
+  globalThis.fetch = async url => {
+    if (String(url).endsWith('/token-welfare/status')) {
+      return Response.json({ success: true, data: [{ activityCode: '1003', claimStatus: 'CLAIMABLE' }] })
+    }
+    claimed = true
+    return Response.json({ success: true, data: [{ activityName: '每日打卡礼', receivedTokenAmount: 1000000, consecutiveDays: 3 }] })
+  }
+  assert.deepEqual(await dailyCheckin('t'), { outcome: 'claimed', credit: 1000000, streak: 3, message: '每日打卡礼' })
+  assert.equal(claimed, true)
+})
+
+test('daily check-in: unregistered account is ineligible, never a raw server message', async () => {
+  const { dailyCheckin } = await import('../lib/mobileclaw.mjs')
+  globalThis.fetch = async url => String(url).endsWith('/status')
+    ? Response.json({ success: true, data: [] })
+    : Response.json({ success: false, code: 'C404003', message: 'server echo for user 138****0000' })
+  const result = await dailyCheckin('t')
+  assert.equal(result.outcome, 'ineligible')
+  assert.equal(result.message.includes('138'), false)
+  globalThis.fetch = async url => String(url).endsWith('/status')
+    ? Response.json({ success: true, data: [] })
+    : Response.json({ success: false, code: 'C999999', message: 'x' })
+  assert.deepEqual(await dailyCheckin('t'), { outcome: 'failed' })
+})

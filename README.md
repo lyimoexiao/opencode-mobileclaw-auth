@@ -12,7 +12,7 @@
 - 登录后显示账号真实可用的模型，不写死。
 - 文本聊天、图片理解、流式回复、取消请求。
 - 按 Magpie 的搜索钩子接入 MobileClaw 官方网页搜索。
-- 读 Coding Plan、Token Plan 和体验额度。
+- 读 Coding Plan、Token Plan 和体验额度，支持每日签到领取额度。
 
 实测过的：
 
@@ -57,7 +57,7 @@ magpie plugin logout mobileclaw
 
 ## 模型、图片、搜索
 
-模型列表按官方字段对齐：`contextLength`、`maxOutputLength` 乘 1000，`modelTypes` 映射成输入/输出能力，`pkgTypes` 与订阅可用套餐求交集后作为 `pkg-types` 请求头。
+模型列表按官方字段对齐：`contextLength`、`maxOutputLength` 乘 1000，`modelTypes` 映射成输入/输出能力，`pkgTypes` 与订阅可用套餐求交集后作为 `pkg-types` 请求头。官方的 `rate` 是 token 计价比例（例如 `1:1000Token`），不是 Magpie 的额度倍率，所以不传。
 
 图片理解模型会标 `input.image`、`attachment`、`modalities.input`，图片消息按 OpenAI Chat 的 `image_url` 原样透传。当前账号没有多模态套餐，真实图片请求还没跑通上游。
 
@@ -80,6 +80,8 @@ GET https://zhenze-huhehaote.cmecloud.cn/desktop/search/v2/mwebsearch
 - 体验额度：剩余 token。
 
 余额窗口不会伪造 `used/limit`，未知值不显示成 0。金融权益、免费用量统计、企业额度没接。
+
+每日签到走官方 `/token-welfare` 接口，用 Magpie 的签到钩子：已领报 `done`，领取成功报额度金额和连续天数，未注册、未实名报 `ineligible`。签到只在个人工作区有效。
 
 ## 限制
 

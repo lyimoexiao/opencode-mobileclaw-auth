@@ -1,6 +1,6 @@
 {
   "name": "opencode-mobileclaw-auth",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Unofficial MobileClaw account provider for Magpie",
   "type": "module",
   "main": "./index.mjs",

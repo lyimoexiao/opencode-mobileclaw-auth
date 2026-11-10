@@ -107,12 +107,12 @@ MAC 不能为空
 | 缺失 context/output | 官方 engine 兜底 200000 / 32768 |
 | `modelTypes` | 文本→输入/输出 text；图片理解→input.image + attachment + modalities.input 含 image；视频理解→input.video；图片生成→output.image；视频生成→output.video |
 | `pkgTypes` | 与订阅 `packageList.available` 交集，作为 chat 的 `pkg-types` |
-| `rate` | 原样作为 Magpie `rate`；空串或 `0` 不写 |
 | `aiProvider` | chat 的 `ai-provider` 头 |
 
 没有对齐或不做的部分：
 
-- `free` 不从 `pkgTypes` 推断；官方没有在该列表里直接给“免费”语义。
+- `free` 不从 `pkgTypes` 推断；官方没有在该列表里直接给“免费”语义。`FREE` 套餐的模型仍消耗体验额度，标成免费会误导路由。
+- 官方 `rate` 是 token 计价比例（`1:1000Token` 这类），不是 Magpie 的额度倍率，因此不写入 `rate`。
 - `reasoning`、工具调用能力没有独立字段；沿用官方兜底的 `tool_call: true`，不额外宣称推理能力。
 - `aliasName` 在官方普通模型选择路径中没有被使用；插件仅在非空时作为名称。
 - 自动模式 Token Plan 的“只允许 `auto`”规则、企业模型、AICC 图像/视频任务没有实现。
@@ -197,3 +197,32 @@ GET https://zhenze-huhehaote.cmecloud.cn/desktop/search/v2/mwebsearch
 参数为 `q`、`ref_prom=aiso-sr`、`sid`、`count`，使用当前账号令牌和 `service-version`。返回 `items` 后取 `title`、`url`、`summary_ai` 或 `summary`、`time`，转成 Magpie 的页面结构。2026-11-10 实测返回 HTTP 200、`errno: 0`、1 条结果。
 
 官方 engine 的搜索工具还有 DuckDuckGo 和 Exa 兜底；插件只接主接口，失败时交给 Magpie 的搜索重试/其他搜索源。`fresh_day`、`date_range` 和独立 `web_search` 工具参数没有暴露给 Magpie 搜索钩子。
+
+
+## 8. 对齐状态清单
+
+| 能力 | 状态 |
+| --- | --- |
+| 模型列表、上下文/输出上限、模态、套餐过滤 | 已对齐并实测 |
+| 聊天请求 `ai-provider`、`pkg-types`、SDK UA | 已对齐并实测 |
+| 图片理解能力标记和 `image_url` 透传 | 已对齐；未用多模态账号实测 |
+| 官方网页搜索 `mwebsearch` | 已接入；接口实测 200 |
+| Coding Plan / Token Plan / 体验额度 | 已接入；体验额度实测显示 |
+| 每日签到 `/token-welfare` | 已接入；只读状态接口实测 |
+| 令牌续期和 `X-Magpie-Sign-In` | 已实现 |
+| 2026-11-10 复核后补 | 见下 |
+
+2026-11-10 复核新增：签到钩子、`X-Magpie-Sign-In: renewed`、去掉无意义的 `rate` 映射。签到状态接口返回 `claimStatus: "CLAIMED"`、`activityName: "每日打卡礼"`、`consecutiveDays: 1`；未调用领取接口，避免替用户领取奖励。
+
+### 仍未对齐
+
+- 搜索兜底：官方还有 DuckDuckGo、Exa 两条后端；插件只接官方主接口。
+- 额度洞口：`/subscriptions/coding-plan-tokens`、`/subscriptions/finance-benefit`、`/subscriptions/free-usages`、`/ent/current-usage` 未接入。
+- 登录方式：扫码、SIM、设置/重置密码未实现。
+- 企业工作区：`/member-subjects` 后的 `resId`、`memId`、`resUserId`、`orgId` 绑定未实现。
+- 账号选择：多账号要手填 `userId`，没有官方那样的交互选择。
+- 自动模式 Token Plan 的“只允许 `auto`”限制未复制。
+- 图片/视频生成任务、AICC、MCP/托管工具、企业模型未接入。
+- 官方聊天的 `x-aitc-*`、`x-ecbot-dev-*` 头未发送；实测不影响当前模型。
+- `serviceTiers`、`decides`、`searches`（模型级）、`magpie.load` 负载上报未使用，官方接口也没有对应数据。
+- 上游 `/auth/logout` 未调用；退出只删本地凭据。
