@@ -83,7 +83,6 @@ GET https://zhenze-huhehaote.cmecloud.cn/desktop/search/v2/mwebsearch
 
 ## 限制
 
-- 早期登录 400 已补 MAC、OS、UA、`deviceId` 等参数；如果还遇到 400，请给具体接口、状态码和错误码，不要发手机号、验证码、密码或令牌。
 - 多账号选择要手填 `userId`，没有交互选择界面。
 - 企业工作区、扫码、SIM 登录没做。
 - 没有 refresh token 的手动导入不会自动续期。
