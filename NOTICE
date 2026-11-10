@@ -1,0 +1,14 @@
+MobileClaw icon notice
+======================
+
+`assets/mobileclaw-icon.png` and `assets/mobileclaw-icon-256.png` are extracted
+from MobileClaw 1.9.8 (`Contents/Resources/icons/icon.png`) only to identify the
+target service in this unofficial interoperability plugin.
+
+The MobileClaw name, logo and icon are trademarks/copyright of their respective
+owner (China Mobile / CMSS). This project is not affiliated with, endorsed by or
+sponsored by them. The MIT license in this repository does not apply to these
+icon files. Remove or replace them if the rights holder requests it.
+
+The icon is not used to claim official status, bypass access controls or forge
+telemetry.
