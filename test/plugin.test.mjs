@@ -99,6 +99,7 @@ test('model discovery intersects account package availability and retains reques
   assert.equal(list.allowed.capabilities.attachment, true)
   assert.equal(list.allowed.capabilities.temperature, true)
   assert.equal(list.allowed.capabilities.reasoning, false)
+  assert.deepEqual(list.allowed.modalities.input, ['text', 'image'])
   assert.equal(list.allowed.rate, '1:1000Token')
 })
 
@@ -165,4 +166,35 @@ test('loader restores model pkg-types that Magpie did not forward', async () => 
   assert.equal(chatHeaders.get('context-limit'), null)
   assert.equal(chatHeaders.get('ai-provider'), 'p')
   assert.equal(chatHeaders.get('user-agent'), 'opencode/local ai-sdk/openai-compatible/1.0.32')
+})
+
+
+test('multimodal image content passes through the chat request unchanged', async () => {
+  const p = await plugin()
+  const loader = await p.auth.loader(async () => auth)
+  const imageBody = {
+    model: 'vision-test',
+    messages: [{
+      role: 'user',
+      content: [
+        { type: 'text', text: 'What is in this image?' },
+        { type: 'image_url', image_url: { url: 'data:image/png;base64,iVBORw0KGgo=' } },
+      ],
+    }],
+    stream: false,
+  }
+  let sent
+  globalThis.fetch = async (url, init) => {
+    if (String(url).includes('/gate/model/modelList')) return ok([
+      { modelName: 'vision-test', modelTypes: ['文本模型', '图片理解'], pkgTypes: ['FREE'], contextLength: 128, maxOutputLength: 8 },
+    ])
+    if (String(url).includes('/subscriptions/getAiProviders')) return ok([
+      { provider: 'test-provider', packageList: [{ providerType: 'FREE', available: true }] },
+    ])
+    sent = JSON.parse(init.body)
+    return ok({ choices: [{ message: { role: 'assistant', content: 'ok' } }] })
+  }
+  const response = await loader.fetch(`${BASE}/chat/completions`, { method: 'POST', body: JSON.stringify(imageBody) })
+  assert.equal(response.status, 200)
+  assert.deepEqual(sent, imageBody)
 })

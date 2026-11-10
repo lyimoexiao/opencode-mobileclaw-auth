@@ -105,7 +105,7 @@ MAC 不能为空
 | `contextLength` | `limit.context = contextLength * 1000`（官方 `resolveContext` 同样乘 1000） |
 | `maxOutputLength` | `limit.output = maxOutputLength * 1000`，不超过上下文 |
 | 缺失 context/output | 官方 engine 兜底 200000 / 32768 |
-| `modelTypes` | 文本→输入/输出 text；图片理解→input.image + attachment；视频理解→input.video；图片生成→output.image；视频生成→output.video |
+| `modelTypes` | 文本→输入/输出 text；图片理解→input.image + attachment + modalities.input 含 image；视频理解→input.video；图片生成→output.image；视频生成→output.video |
 | `pkgTypes` | 与订阅 `packageList.available` 交集，作为 chat 的 `pkg-types` |
 | `rate` | 原样作为 Magpie `rate`；空串或 `0` 不写 |
 | `aiProvider` | chat 的 `ai-provider` 头 |
@@ -118,7 +118,7 @@ MAC 不能为空
 - 自动模式 Token Plan 的“只允许 `auto`”规则、企业模型、AICC 图像/视频任务没有实现。
 - 官方 chat 不发 `context-limit`，插件也不发；上下文只用于模型 `limit.context`。
 
-图片理解的能力标记已对齐到 Magpie 的 `capabilities.input.image` 和 `attachment`；当前账号只有 `FREE` 文本模型，`minimax/minimax-m3` 这类多模态模型需要 Token Plan，未做端到端图片请求验证。视频理解只标能力，Magpie/OpenAI Chat 的视频消息支持未验证。
+图片理解的能力标记已对齐到 Magpie 的 `capabilities.input.image`、`attachment` 和 `modalities.input`；loader 对 `image_url` 内容原样透传，并有单元测试确认请求体不被改写。当前账号只有 `FREE` 文本模型，`minimax/minimax-m3` 这类多模态模型需要 Token Plan，未做真实图片请求验证。视频理解只标能力，Magpie/OpenAI Chat 的视频消息支持未验证。
 
 Magpie 不会把 `provider.models` 返回的模型 `headers` 带到聊天请求。插件因此在第一次聊天前按账号拉一次模型列表，生成模型 ID→`pkg-types` 映射。这个坑曾导致真实账号的 `provider test` 返回 500；补上后 `glm-5.3` 实测 200。
 
@@ -144,7 +144,11 @@ Magpie 不会把 `provider.models` 返回的模型 `headers` 带到聊天请求�
 - 未实现新活动的签到及赠送权益领取；发现赠送类型字符串不等于证明有可直接调用的领取 API。
 - 动态模型的推理、图像、多模态和真实输出上限尚未逐一验证；仍采取保守能力声明。
 
-## 6. 当前应如何定位剩余 400
+## 6. 当前登录状态
+
+当前插件账号已实测登录成功，模型列表、额度、搜索接口和 `glm-5.3` 聊天均可返回。短信/密码登录的独立全流程仍需自测；早期 400 已补 MAC、OS、UA、deviceId 等参数，但不声称所有账号和所有登录方式都已通过。
+
+## 7. 当前应如何定位剩余 400
 
 真实失败仍需至少一条**不含凭据**的信息：
 
@@ -180,3 +184,16 @@ Magpie 不会把 `provider.models` 返回的模型 `headers` 带到聊天请求�
 ### 本插件的处理
 
 插件不复制或伪造上述遥测，不发送 pageview/custom_event，也不冒充官方客户端以规避封号。这是有意的安全和合规边界，不是待实现功能。插件只发送完成登录、模型发现、额度读取和模型推理所需的最小请求；UA 兼容仅用于协议互操作，不用于伪造官方使用记录。
+
+
+## 搜索
+
+插件按 Magpie 的 `search` 钩子接入官方接口：
+
+```text
+GET https://zhenze-huhehaote.cmecloud.cn/desktop/search/v2/mwebsearch
+```
+
+参数为 `q`、`ref_prom=aiso-sr`、`sid`、`count`，使用当前账号令牌和 `service-version`。返回 `items` 后取 `title`、`url`、`summary_ai` 或 `summary`、`time`，转成 Magpie 的页面结构。2026-11-10 实测返回 HTTP 200、`errno: 0`、1 条结果。
+
+官方 engine 的搜索工具还有 DuckDuckGo 和 Exa 兜底；插件只接主接口，失败时交给 Magpie 的搜索重试/其他搜索源。`fresh_day`、`date_range` 和独立 `web_search` 工具参数没有暴露给 Magpie 搜索钩子。

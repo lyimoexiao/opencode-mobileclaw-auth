@@ -1,6 +1,6 @@
 import {
   BASE, MANAGER, ORIGIN, PROVIDER, baseline, credentials, device, encrypt,
-  creditWindow, finishLogin, headers, json, models, refresh, tokenPlanWindows, usageWindows,
+  creditWindow, finishLogin, headers, json, models, refresh, searchWeb, tokenPlanWindows, usageWindows,
 } from './lib/mobileclaw.mjs'
 
 const phonePrompt = { type: 'text', key: 'phone', message: '手机号（+86）', validate: v => /^1[3-9]\d{9}$/.test(v) ? undefined : '请输入有效的中国大陆手机号' }
@@ -185,6 +185,15 @@ export default async function MobileClawPlugin({ client }) {
           user: auth.accountId,
           windows,
         }
+      },
+    },
+    search: {
+      [PROVIDER]: {
+        name: 'MobileClaw',
+        auth: PROVIDER,
+        async execute({ query, count }, ctx) {
+          return searchWeb(query, count, await ctx.getAuth(), ctx.abort)
+        },
       },
     },
     provider: {
