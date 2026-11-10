@@ -96,6 +96,9 @@ test('model discovery intersects account package availability and retains reques
   assert.equal(list.allowed.api.url, BASE)
   assert.deepEqual(list.allowed.limit, { context: 200000, output: 8000 })
   assert.equal(list.allowed.capabilities.input.image, true)
+  assert.equal(list.allowed.capabilities.attachment, true)
+  assert.equal(list.allowed.capabilities.temperature, true)
+  assert.equal(list.allowed.capabilities.reasoning, false)
   assert.equal(list.allowed.rate, '1:1000Token')
 })
 

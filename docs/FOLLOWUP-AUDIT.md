@@ -105,7 +105,7 @@ MAC 不能为空
 | `contextLength` | `limit.context = contextLength * 1000`（官方 `resolveContext` 同样乘 1000） |
 | `maxOutputLength` | `limit.output = maxOutputLength * 1000`，不超过上下文 |
 | 缺失 context/output | 官方 engine 兜底 200000 / 32768 |
-| `modelTypes` | 文本→输入/输出 text；图片理解→input.image；视频理解→input.video；图片生成→output.image；视频生成→output.video |
+| `modelTypes` | 文本→输入/输出 text；图片理解→input.image + attachment；视频理解→input.video；图片生成→output.image；视频生成→output.video |
 | `pkgTypes` | 与订阅 `packageList.available` 交集，作为 chat 的 `pkg-types` |
 | `rate` | 原样作为 Magpie `rate`；空串或 `0` 不写 |
 | `aiProvider` | chat 的 `ai-provider` 头 |
@@ -117,6 +117,8 @@ MAC 不能为空
 - `aliasName` 在官方普通模型选择路径中没有被使用；插件仅在非空时作为名称。
 - 自动模式 Token Plan 的“只允许 `auto`”规则、企业模型、AICC 图像/视频任务没有实现。
 - 官方 chat 不发 `context-limit`，插件也不发；上下文只用于模型 `limit.context`。
+
+图片理解的能力标记已对齐到 Magpie 的 `capabilities.input.image` 和 `attachment`；当前账号只有 `FREE` 文本模型，`minimax/minimax-m3` 这类多模态模型需要 Token Plan，未做端到端图片请求验证。视频理解只标能力，Magpie/OpenAI Chat 的视频消息支持未验证。
 
 Magpie 不会把 `provider.models` 返回的模型 `headers` 带到聊天请求。插件因此在第一次聊天前按账号拉一次模型列表，生成模型 ID→`pkg-types` 映射。这个坑曾导致真实账号的 `provider test` 返回 500；补上后 `glm-5.3` 实测 200。
 

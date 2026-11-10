@@ -90,7 +90,7 @@ magpie plugin logout mobileclaw
 
 模型列表和支持参数按官方字段对齐：`contextLength`、`maxOutputLength` 按官方引擎的规则乘 1000；`modelTypes` 里的“图片理解”“视频理解”会映射成输入能力，“图片生成”“视频生成”映射成输出能力；`rate` 原样保留；模型可用套餐用 `pkg-types` 过滤。
 
-目前只接了文本 Chat Completions。图片、视频生成任务、托管工具没有接，也不会因为列表里有类型就假装能调用。
+目前只接了文本 Chat Completions。图片理解模型会把 `input.image`、`attachment` 标出来，让 Magpie 知道它能收图片；视频理解会标 `input.video`。实际图片/视频请求还没用多模态账号验证，图片/视频生成任务、托管工具也没接。
 
 ## 额度
 
